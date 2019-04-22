@@ -1,6 +1,8 @@
-﻿using System;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Metadata;
 
 namespace NuGet.Tools.Documentation
@@ -42,6 +44,8 @@ namespace NuGet.Tools.Documentation
                 Name = reader.GetString(typeDefinition.Name),
                 Namespace = reader.GetString(typeDefinition.Namespace),
 
+                Attributes = typeDefinition.Attributes,
+
                 Fields = reader.GetCollection(fieldDefinitions, GetFieldInfo),
                 Methods = reader.GetCollection(methodDefinitions, GetMethodInfo),
                 Properties = reader.GetCollection(propertyDefinitions, GetPropertyInfo),
@@ -60,7 +64,10 @@ namespace NuGet.Tools.Documentation
 
             return new FieldInfo
             {
-                Name = reader.GetString(fieldDefinition.Name)
+                Name = reader.GetString(fieldDefinition.Name),
+                Type = fieldDefinition.DecodeSignature(new SignatureTypeProvider(reader), null),
+
+                Attributes = fieldDefinition.Attributes,
             };
         }
 
@@ -73,10 +80,16 @@ namespace NuGet.Tools.Documentation
         public static MethodInfo GetMethodInfo(this MetadataReader reader, MethodDefinitionHandle handle)
         {
             var methodDefinition = reader.GetMethodDefinition(handle);
+            var signature = methodDefinition.DecodeSignature(new SignatureTypeProvider(reader), null);
 
             return new MethodInfo
             {
-                Name = reader.GetString(methodDefinition.Name)
+                Name = reader.GetString(methodDefinition.Name),
+
+                ReturnType = signature.ReturnType,
+                ParameterTypes = signature.ParameterTypes.ToList(),
+
+                Attributes = methodDefinition.Attributes,
             };
         }
 
@@ -89,10 +102,19 @@ namespace NuGet.Tools.Documentation
         public static PropertyInfo GetPropertyInfo(this MetadataReader reader, PropertyDefinitionHandle handle)
         {
             var propertyDefinition = reader.GetPropertyDefinition(handle);
+            var accessors = propertyDefinition.GetAccessors();
+            var signature = propertyDefinition.DecodeSignature(new SignatureTypeProvider(reader), null);
 
             return new PropertyInfo
             {
-                Name = reader.GetString(propertyDefinition.Name)
+                Name = reader.GetString(propertyDefinition.Name),
+
+                Type = signature.ReturnType,
+
+                HasGetter = !accessors.Getter.IsNil,
+                HasSetter = !accessors.Setter.IsNil,
+
+                Attributes = propertyDefinition.Attributes,
             };
         }
 
@@ -118,14 +140,17 @@ namespace NuGet.Tools.Documentation
         public string Name { get; set; }
         public string Namespace { get; set; }
 
+        [JsonConverter(typeof(FlagConverter))]
+        public TypeAttributes Attributes { get; set; }
+
         public IReadOnlyList<FieldInfo> Fields { get; set; }
         public IReadOnlyList<MethodInfo> Methods { get; set; }
         public IReadOnlyList<PropertyInfo> Properties { get; set; }
 
-        // Attributes
-        // BaseType
+        // Custom Attributes
+        // Base type
         // Events
-        // Generic parameters?
+        // Generic parameters
     }
 
     /// <summary>
@@ -134,10 +159,14 @@ namespace NuGet.Tools.Documentation
     public class FieldInfo
     {
         public string Name { get; set; }
+        public string Type { get; set; }
 
-        // Attributes
-        // Default value
+        [JsonConverter(typeof(FlagConverter))]
+        public FieldAttributes Attributes { get; set; }
+
         // Type
+        // Custom attributes
+        // Default value
     }
 
     /// <summary>
@@ -146,6 +175,12 @@ namespace NuGet.Tools.Documentation
     public class MethodInfo
     {
         public string Name { get; set; }
+
+        public string ReturnType { get; set; }
+        public IReadOnlyList<string> ParameterTypes { get; set; }
+
+        [JsonConverter(typeof(FlagConverter))]
+        public MethodAttributes Attributes { get; set; }
     }
 
     /// <summary>
@@ -154,5 +189,18 @@ namespace NuGet.Tools.Documentation
     public class PropertyInfo
     {
         public string Name { get; set; }
+
+        public string Type { get; set; }
+
+        public bool HasGetter { get; set; }
+        public bool HasSetter { get; set; }
+
+        [JsonConverter(typeof(FlagConverter))]
+        public PropertyAttributes Attributes { get; set; }
+
+        // Getter
+        // Setter
+        // Default value
+        // Custom attributes
     }
 }
