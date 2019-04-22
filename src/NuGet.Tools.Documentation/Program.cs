@@ -47,20 +47,21 @@ namespace NuGet.Tools.Documentation
                         Console.WriteLine($"Target framework: {group.TargetFramework}");
                         Console.WriteLine();
 
-                        foreach (var item in group.Items.Where(IsLibrary))
+                        foreach (var item in group.Items.Where(i => Path.GetExtension(i) == ".dll"))
                         {
-                            using (var libraryStream = await reader.GetStream(item).AsTemporaryFileStreamAsync())
+                            using (var libraryStream = await reader.GetStream(item).AsTemporaryFileStreamAsync(cancellationToken))
                             using (var peReader = new PEReader(libraryStream))
                             {
-                                // TODO:
                                 if (!peReader.HasMetadata) continue;
                                 
-                                var metadataReader = peReader.GetMetadataReader();
-                                var assemblyInfo = metadataReader.GetAssemblyInfo();
+                                var assemblyInfo = peReader
+                                    .GetMetadataReader()
+                                    .GetAssemblyInfo();
 
-                                var publicAssemblyInfo = FilterNonPublic(assemblyInfo);
-
-                                var json = JsonConvert.SerializeObject(publicAssemblyInfo, Formatting.Indented, SerializationSettings);
+                                var json = JsonConvert.SerializeObject(
+                                    FilterNonPublic(assemblyInfo),
+                                    Formatting.Indented,
+                                    SerializationSettings);
 
                                 Console.WriteLine(json);
                            }
@@ -74,11 +75,6 @@ namespace NuGet.Tools.Documentation
             {
                 Console.WriteLine($"Could not open NuGet package: {e}");
             }
-        }
-
-        private static bool IsLibrary(string path)
-        {
-            return (Path.GetExtension(path) == ".dll");
         }
 
         private static AssemblyInfo FilterNonPublic(AssemblyInfo assemblyInfo)

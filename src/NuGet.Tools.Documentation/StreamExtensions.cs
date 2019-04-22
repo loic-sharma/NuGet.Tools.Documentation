@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,6 +34,8 @@ namespace NuGet.Tools.Documentation
             {
                 await original.CopyToAsync(result, DefaultCopyBufferSize, cancellationToken);
                 result.Position = 0;
+
+                original.Dispose();
             }
             catch (Exception)
             {
