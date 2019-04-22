@@ -6,7 +6,7 @@ using System.Text;
 
 namespace NuGet.Tools.Documentation
 {
-    // This is copied from: https://github.com/dotnet/metadata-tools/blob/04a483752c19eb1a28ab0642038ae7c2b7b2cdac/src/Microsoft.Metadata.Visualizer/MetadataVisualizer.SignatureVisualizer.cs#L13
+    // This is forked from: https://github.com/dotnet/metadata-tools/blob/04a483752c19eb1a28ab0642038ae7c2b7b2cdac/src/Microsoft.Metadata.Visualizer/MetadataVisualizer.SignatureVisualizer.cs#L13
     // Also interesting: https://github.com/tunnelvisionlabs/dotnet-compatibility/pull/24/files
     internal sealed class SignatureTypeProvider : ISignatureTypeProvider<string, object>
     {
