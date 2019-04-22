@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "NuGet.Tools.Documentation": {
+      "commandName": "Project",
+      "commandLineArgs": "--path C:\\Users\\loshar\\.nuget\\packages\\newtonsoft.json\\10.0.2\\newtonsoft.json.10.0.2.nupkg"
+    }
+  }
+}

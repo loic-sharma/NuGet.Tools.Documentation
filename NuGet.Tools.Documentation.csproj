@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <OutputType>Exe</OutputType>
+    
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>dotnet-document</ToolCommandName>
+
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="NuGet.Packaging" Version="5.0.0" />
+    <PackageReference Include="System.CommandLine.DragonFruit" Version="0.2.0-alpha.19174.3" />
+    <PackageReference Include="System.Reflection.Metadata" Version="1.7.0-preview4.19212.13" />
+  </ItemGroup>
+
+</Project>
