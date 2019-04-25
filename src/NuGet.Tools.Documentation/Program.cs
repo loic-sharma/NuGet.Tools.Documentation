@@ -102,11 +102,10 @@ namespace NuGet.Tools.Documentation
             {
                 if (!peReader.HasMetadata) throw new Exception("??");
 
-                var assemblyInfo = peReader
+                return peReader
                     .GetMetadataReader()
-                    .GetAssemblyInfo();
-
-                return assemblyInfo.FilterNonPublic();
+                    .GetAssemblyInfo()
+                    .FilterNonPublic();
             }
         }
     }
