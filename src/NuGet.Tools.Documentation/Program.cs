@@ -74,6 +74,8 @@ namespace NuGet.Tools.Documentation
         #region Roslyn
         private static AssemblyInfo GetAssemblyInfo(FileStream assemblyStream)
         {
+            // See: https://github.com/dotnet/docfx/blob/dev/src/Microsoft.DocAsCode.Metadata.ManagedReference/ExtractMetadata/CompilationUtility.cs#L60
+            // See: https://github.com/dotnet/docfx/blob/dev/src/Microsoft.DocAsCode.Metadata.ManagedReference/ExtractMetadata/CompilationUtility.cs#L80
             var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
             var reference = MetadataReference.CreateFromStream(assemblyStream);
             var compilation = CSharpCompilation.Create("HelloWorld", new SyntaxTree[0], new[] { reference }, options);

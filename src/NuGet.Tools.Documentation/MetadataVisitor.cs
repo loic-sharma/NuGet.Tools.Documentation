@@ -4,6 +4,10 @@ using System.Linq;
 
 namespace NuGet.Tools.Documentation
 {
+    /// <summary>
+    /// See: https://github.com/dotnet/docfx/blob/dev/src/Microsoft.DocAsCode.Metadata.ManagedReference.Roslyn/Visitors/SymbolVisitorAdapter.cs
+    /// See: https://github.com/dotnet/docfx/blob/dev/src/Microsoft.DocAsCode.Metadata.ManagedReference.Roslyn/Visitors/CSYamlModelGenerator.cs
+    /// </summary>
     public class MetadataVisitor : SymbolVisitor<object>
     {
         public override object VisitAssembly(IAssemblySymbol symbol)
