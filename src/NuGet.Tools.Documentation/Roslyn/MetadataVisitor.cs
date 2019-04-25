@@ -45,7 +45,7 @@ namespace NuGet.Tools.Documentation
             return new TypeInfo
             {
                 Name = symbol.Name,
-                Namespace = symbol.ContainingNamespace.Name,
+                Namespace = symbol.ContainingNamespace.GetFullName(),
 
                 Fields = members.OfType<FieldInfo>().ToList(),
                 Methods = members.OfType<MethodInfo>().ToList(),
@@ -57,7 +57,8 @@ namespace NuGet.Tools.Documentation
         {
             return new FieldInfo
             {
-                Name = symbol.Name
+                Name = symbol.Name,
+                Type = symbol.Type.GetFullName()
             };
         }
 
@@ -66,6 +67,9 @@ namespace NuGet.Tools.Documentation
             return new MethodInfo
             {
                 Name = symbol.Name,
+
+                ReturnType = symbol.ReturnType.GetFullName(),
+                ParameterTypes = symbol.Parameters.Select(p => p.Type.GetFullName()).ToList(),
             };
         }
 
@@ -73,8 +77,46 @@ namespace NuGet.Tools.Documentation
         {
             return new PropertyInfo
             {
-                Name = symbol.Name
+                Name = symbol.Name,
+                Type = symbol.Type.GetFullName(),
+
+                HasGetter = symbol.GetMethod != null,
+                HasSetter = symbol.SetMethod != null,
             };
+        }
+    }
+
+    internal static class ISymbolExtensions
+    {
+        public static string GetFullName(this INamespaceSymbol symbol)
+        {
+            if (symbol == null || symbol.Name == string.Empty) return null;
+
+            var parent = symbol.ContainingNamespace.GetFullName();
+
+            return (parent != null)
+                ? $"{parent}.{symbol.Name}"
+                : symbol.Name;
+        }
+
+        public static string GetFullName(this ITypeSymbol symbol)
+        {
+            var @namespace = symbol.ContainingNamespace.GetFullName();
+            var type = symbol.Name;
+
+            var result = (@namespace != null)
+                ? $"{@namespace}.{type}"
+                : type;
+
+            if (symbol is INamedTypeSymbol namedType)
+            {
+                if (namedType.IsGenericType)
+                {
+                    result += "<???>";
+                }
+            }
+
+            return result;
         }
     }
 }
