@@ -53,6 +53,9 @@ namespace NuGet.Tools.Documentation
                         {
                             using (var assemblyStream = await reader.GetStream(item).AsTemporaryFileStreamAsync(cancellationToken))
                             {
+                                // There are two implementations:
+                                // 1. GetAssemblyInfo - Uses Roslyn like DocFX does. This is easier to work with and higher level.
+                                // 2. GetAssembly2Info - Uses System.Metadata.Reflection like symbol server. Low level and harder to work with.
                                 var assemblyInfo = GetAssemblyInfo(assemblyStream);
                                 //var assemblyInfo = GetAssemblyInfo2(assemblyStream);
                                 var json = JsonConvert.SerializeObject(assemblyInfo, Formatting.Indented, SerializationSettings);
@@ -71,7 +74,11 @@ namespace NuGet.Tools.Documentation
             }
         }
 
-        #region Roslyn
+        /// <summary>
+        /// Gets the assembly's information using Roslyn APIs.
+        /// </summary>
+        /// <param name="assemblyStream"></param>
+        /// <returns></returns>
         private static AssemblyInfo GetAssemblyInfo(FileStream assemblyStream)
         {
             // See: https://github.com/dotnet/docfx/blob/dev/src/Microsoft.DocAsCode.Metadata.ManagedReference/ExtractMetadata/CompilationUtility.cs#L60
@@ -85,10 +92,12 @@ namespace NuGet.Tools.Documentation
 
             return (AssemblyInfo)assemblySymbol.Accept(visitor);
         }
-        #endregion
 
-        #region System.Reflection.Metadata
-
+        /// <summary>
+        /// Get the assembly's information using System.Reflection.Metadata.
+        /// </summary>
+        /// <param name="assemblyStream"></param>
+        /// <returns></returns>
         private static AssemblyInfo GetAssemblyInfo2(FileStream assemblyStream)
         {
             using (var peReader = new PEReader(assemblyStream))
@@ -99,60 +108,8 @@ namespace NuGet.Tools.Documentation
                     .GetMetadataReader()
                     .GetAssemblyInfo();
 
-                return FilterNonPublic(assemblyInfo);
+                return assemblyInfo.FilterNonPublic();
             }
-        }
-
-        #endregion
-
-        private static AssemblyInfo FilterNonPublic(AssemblyInfo assemblyInfo)
-        {
-            return new AssemblyInfo
-            {
-                Types = FilterNonPublic(assemblyInfo.Types)
-            };
-        }
-
-        private static IReadOnlyList<TypeInfo> FilterNonPublic(IReadOnlyList<TypeInfo> types)
-        {
-            return types
-                .Where(t => t.Attributes.HasFlag(TypeAttributes.Public))
-                .Where(t => !t.Attributes.HasFlag(TypeAttributes.NestedAssembly))
-                .Where(t => !t.Attributes.HasFlag(TypeAttributes.NestedPrivate))
-                .Select(t => new TypeInfo
-                {
-                    Name = t.Name,
-                    Namespace = t.Namespace,
-
-                    Attributes = t.Attributes,
-
-                    Fields = FilterNonPublic(t.Fields),
-                    Methods = FilterNonPublic(t.Methods),
-                    Properties = FilterNonPublic(t.Properties),
-                })
-                .ToList();
-        }
-
-        private static IReadOnlyList<FieldInfo> FilterNonPublic(IReadOnlyList<FieldInfo> fields)
-        {
-            return fields
-                .Where(f => f.Attributes.HasFlag(FieldAttributes.Public))
-                .Where(f => !f.Attributes.HasFlag(FieldAttributes.SpecialName))
-                .ToList();
-        }
-
-        private static IReadOnlyList<MethodInfo> FilterNonPublic(IReadOnlyList<MethodInfo> methods)
-        {
-            return methods
-                .Where(m => m.Attributes.HasFlag(MethodAttributes.Public))
-                .Where(m => !m.Attributes.HasFlag(MethodAttributes.PrivateScope))
-                .ToList();
-        }
-
-        private static IReadOnlyList<PropertyInfo> FilterNonPublic(IReadOnlyList<PropertyInfo> properties)
-        {
-            return properties;
-            //return properties.Where(p => (p.Attributes & PropertyAttributes.) != 0).ToList();
         }
     }
 }

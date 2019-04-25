@@ -1,12 +1,65 @@
 using Newtonsoft.Json;
+using NuGet.Tools.Documentation;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
 
 namespace NuGet.Tools.Documentation
 {
     public class AssemblyInfo
     {
         public IReadOnlyList<TypeInfo> Types { get; set; }
+
+        public AssemblyInfo FilterNonPublic()
+        {
+            return new AssemblyInfo
+            {
+                Types = FilterNonPublic(Types)
+            };
+        }
+
+        private static IReadOnlyList<TypeInfo> FilterNonPublic(IReadOnlyList<TypeInfo> types)
+        {
+            return types
+                .Where(t => t.Attributes.HasFlag(TypeAttributes.Public))
+                .Where(t => !t.Attributes.HasFlag(TypeAttributes.NestedAssembly))
+                .Where(t => !t.Attributes.HasFlag(TypeAttributes.NestedPrivate))
+                .Select(t => new TypeInfo
+                {
+                    Name = t.Name,
+                    Namespace = t.Namespace,
+
+                    Attributes = t.Attributes,
+
+                    Fields = FilterNonPublic(t.Fields),
+                    Methods = FilterNonPublic(t.Methods),
+                    Properties = FilterNonPublic(t.Properties),
+                })
+                .ToList();
+        }
+
+        private static IReadOnlyList<FieldInfo> FilterNonPublic(IReadOnlyList<FieldInfo> fields)
+        {
+            return fields
+                .Where(f => f.Attributes.HasFlag(FieldAttributes.Public))
+                .Where(f => !f.Attributes.HasFlag(FieldAttributes.SpecialName))
+                .ToList();
+        }
+
+        private static IReadOnlyList<MethodInfo> FilterNonPublic(IReadOnlyList<MethodInfo> methods)
+        {
+            return methods
+                .Where(m => m.Attributes.HasFlag(MethodAttributes.Public))
+                .Where(m => !m.Attributes.HasFlag(MethodAttributes.PrivateScope))
+                .ToList();
+        }
+
+        private static IReadOnlyList<PropertyInfo> FilterNonPublic(IReadOnlyList<PropertyInfo> properties)
+        {
+            return properties;
+            //return properties.Where(p => (p.Attributes & PropertyAttributes.) != 0).ToList();
+        }
     }
 
     /// <summary>
