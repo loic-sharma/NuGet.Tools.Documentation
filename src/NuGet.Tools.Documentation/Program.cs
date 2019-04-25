@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Newtonsoft.Json;
 using NuGet.Packaging;
 using System;
@@ -49,22 +51,14 @@ namespace NuGet.Tools.Documentation
 
                         foreach (var item in group.Items.Where(i => Path.GetExtension(i) == ".dll"))
                         {
-                            using (var libraryStream = await reader.GetStream(item).AsTemporaryFileStreamAsync(cancellationToken))
-                            using (var peReader = new PEReader(libraryStream))
+                            using (var assemblyStream = await reader.GetStream(item).AsTemporaryFileStreamAsync(cancellationToken))
                             {
-                                if (!peReader.HasMetadata) continue;
-                                
-                                var assemblyInfo = peReader
-                                    .GetMetadataReader()
-                                    .GetAssemblyInfo();
-
-                                var json = JsonConvert.SerializeObject(
-                                    FilterNonPublic(assemblyInfo),
-                                    Formatting.Indented,
-                                    SerializationSettings);
+                                var assemblyInfo = GetAssemblyInfo(assemblyStream);
+                                //var assemblyInfo = GetAssemblyInfo2(assemblyStream);
+                                var json = JsonConvert.SerializeObject(assemblyInfo, Formatting.Indented, SerializationSettings);
 
                                 Console.WriteLine(json);
-                           }
+                            }
                         }
 
                         Console.WriteLine();
@@ -76,6 +70,38 @@ namespace NuGet.Tools.Documentation
                 Console.WriteLine($"Could not open NuGet package: {e}");
             }
         }
+
+        #region Roslyn
+        private static AssemblyInfo GetAssemblyInfo(FileStream assemblyStream)
+        {
+            var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
+            var reference = MetadataReference.CreateFromStream(assemblyStream);
+            var compilation = CSharpCompilation.Create("HelloWorld", new SyntaxTree[0], new[] { reference }, options);
+
+            var visitor = new MetadataVisitor();
+            var assemblySymbol = compilation.GetAssemblyOrModuleSymbol(reference);
+
+            return (AssemblyInfo)assemblySymbol.Accept(visitor);
+        }
+        #endregion
+
+        #region System.Reflection.Metadata
+
+        private static AssemblyInfo GetAssemblyInfo2(FileStream assemblyStream)
+        {
+            using (var peReader = new PEReader(assemblyStream))
+            {
+                if (!peReader.HasMetadata) throw new Exception("??");
+
+                var assemblyInfo = peReader
+                    .GetMetadataReader()
+                    .GetAssemblyInfo();
+
+                return FilterNonPublic(assemblyInfo);
+            }
+        }
+
+        #endregion
 
         private static AssemblyInfo FilterNonPublic(AssemblyInfo assemblyInfo)
         {
