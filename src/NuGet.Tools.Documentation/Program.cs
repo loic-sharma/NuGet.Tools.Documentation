@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Newtonsoft.Json;
 using NuGet.Packaging;
 using System;
@@ -51,11 +50,8 @@ namespace NuGet.Tools.Documentation
                         {
                             using (var assemblyStream = await reader.GetStream(item).AsTemporaryFileStreamAsync(cancellationToken))
                             {
-                                // There are two implementations:
-                                // 1. GetAssemblyInfo - Uses Roslyn like DocFX does. This is easier to work with and higher level.
-                                // 2. GetAssembly2Info - Uses System.Metadata.Reflection like symbol server. Low level and harder to work with.
+                                // GetAssemblyInfo - Uses System.Metadata.Reflection like symbol server. Low level and harder to work with.
                                 var assemblyInfo = GetAssemblyInfo(assemblyStream);
-                                //var assemblyInfo = GetAssemblyInfo2(assemblyStream);
                                 var json = JsonConvert.SerializeObject(assemblyInfo, Formatting.Indented, SerializationSettings);
 
                                 Console.WriteLine(json);
@@ -73,30 +69,11 @@ namespace NuGet.Tools.Documentation
         }
 
         /// <summary>
-        /// Gets the assembly's information using Roslyn APIs.
-        /// </summary>
-        /// <param name="assemblyStream"></param>
-        /// <returns></returns>
-        private static AssemblyInfo GetAssemblyInfo(FileStream assemblyStream)
-        {
-            // See: https://github.com/dotnet/docfx/blob/dev/src/Microsoft.DocAsCode.Metadata.ManagedReference/ExtractMetadata/CompilationUtility.cs#L60
-            // See: https://github.com/dotnet/docfx/blob/dev/src/Microsoft.DocAsCode.Metadata.ManagedReference/ExtractMetadata/CompilationUtility.cs#L80
-            var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary);
-            var reference = MetadataReference.CreateFromStream(assemblyStream);
-            var compilation = CSharpCompilation.Create("HelloWorld", new SyntaxTree[0], new[] { reference }, options);
-
-            var visitor = new MetadataVisitor();
-            var assemblySymbol = compilation.GetAssemblyOrModuleSymbol(reference);
-
-            return (AssemblyInfo)assemblySymbol.Accept(visitor);
-        }
-
-        /// <summary>
         /// Get the assembly's information using System.Reflection.Metadata.
         /// </summary>
         /// <param name="assemblyStream"></param>
         /// <returns></returns>
-        private static AssemblyInfo GetAssemblyInfo2(FileStream assemblyStream)
+        private static AssemblyInfo GetAssemblyInfo(FileStream assemblyStream)
         {
             using (var peReader = new PEReader(assemblyStream))
             {
